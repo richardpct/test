@@ -22,4 +22,4 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - run: echo "The OS is ${{ runner.os }}."
       - run: echo "${{ env.PIPE }} ${{ env.STAGE }}"
-      - run: echo "${{ vars.COLOR }} ${{vars.API}}"
+      - run: echo "${{ vars.COLOR }} ${{secrets.API}}"
