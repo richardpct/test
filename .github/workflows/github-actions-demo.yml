@@ -2,24 +2,24 @@ name: GitHub Actions Demo
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
 jobs:
-  jobs_1:
+  job_1:
     runs-on: [self-hosted, linux]
     steps:
       - run: "echo Jobs: ${{ github.job }}"
 
-  jobs_2:
-    runs-on: [self-hosted, linux]
-    needs: job_1
-    steps:
-      - run: "echo Jobs: ${{ github.job }}"
-
-  jobs_3:
+  job_2:
     runs-on: [self-hosted, linux]
     needs: job_1
     steps:
       - run: "echo Jobs: ${{ github.job }}"
 
-  jobs_4:
+  job_3:
+    runs-on: [self-hosted, linux]
+    needs: job_1
+    steps:
+      - run: "echo Jobs: ${{ github.job }}"
+
+  job_4:
     runs-on: [self-hosted, linux]
     needs: [job_2, job_3]
     steps:
