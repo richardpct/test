@@ -9,10 +9,6 @@ jobs:
       - uses: actions/checkout@v3
       - run: echo "SELECTED_COLOR=green" >> "GITHUB_OUTPUT"
         id: color-generator
-        continue-on-error: true
-      - name: The job has failed
-        if: ${{ failure() }}
-        run: "echo FAILED"
       - name: Get color
         run: "echo Status: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
 
