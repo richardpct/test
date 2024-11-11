@@ -10,7 +10,7 @@ jobs:
       - run: echo "SELECTED_COLOR=green" >> "GITHUB_OUTPUT"
         id: color-generator
       - name: Get color
-        run: echo "Status: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
+        run: echo "${{ steps.color-generator.outputs.SELECTED_COLOR }}"
 
   job_2:
     runs-on: [self-hosted, linux]
