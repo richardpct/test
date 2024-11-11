@@ -8,6 +8,7 @@ jobs:
       - run: "echo Jobs: ${{ github.job }}"
       - uses: actions/checkout@v3
       - run: "ls /tmp/tototata"
+        continue-on-error: true
       - name: The job has failed
         if: ${{ failure() }}
         run: "echo FAILED"
