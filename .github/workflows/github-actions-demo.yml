@@ -7,16 +7,14 @@ jobs:
     steps:
       - run: "echo Jobs: ${{ github.job }}"
       - uses: actions/checkout@v3
-      - run: |
-          ls /tmp/
-          $? || STATUS=failed >> $GITHUB_OUTPUT"
-        id: status
+      - run: echo "SELECTED_COLOR=green" >> "GITHUB_OUTPUT"
+        id: color-generator
         continue-on-error: true
       - name: The job has failed
         if: ${{ failure() }}
         run: "echo FAILED"
-      - name: The job has failed
-        run: "echo Status: ${{ steps.status.outputs.STATUS }}"
+      - name: Get color
+        run: echo "Status: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
 
   job_2:
     runs-on: [self-hosted, linux]
