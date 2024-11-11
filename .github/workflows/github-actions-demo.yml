@@ -12,6 +12,7 @@ jobs:
         run: echo "action_state=yellow" >> "$GITHUB_ENV"
       - run: |
           echo "${{ env.action_state }}"
+          echo "${{ vars.COLOR }}"
 
   job_2:
     runs-on: [self-hosted, linux]
