@@ -16,7 +16,7 @@ jobs:
         if: ${{ failure() }}
         run: "echo FAILED"
       - name: The job has failed
-        run: echo "echo Status: ${{ steps.status.outputs.STATUS }}"
+        run: "echo Status: ${{ steps.status.outputs.STATUS }}"
 
   job_2:
     runs-on: [self-hosted, linux]
