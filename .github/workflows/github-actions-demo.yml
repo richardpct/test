@@ -14,7 +14,7 @@ jobs:
         if: ${{ failure() }}
         run: "echo FAILED"
       - name: Get color
-        run: echo "Status: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
+        run: "echo Status: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
 
   job_2:
     runs-on: [self-hosted, linux]
