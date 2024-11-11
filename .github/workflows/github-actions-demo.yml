@@ -12,12 +12,15 @@ jobs:
       - name: The job has failed
         if: ${{ failure() }}
         run: "echo FAILED"
+      - name: Set color
+        id: color-generator
+        run: echo "SELECTED_COLOR=green" >> "$GITHUB_OUTPUT"
 
   job_2:
     runs-on: [self-hosted, linux]
     needs: job_1
     steps:
-      - run: "echo Jobs: ${{ github.job }}"
+      - run: "echo Color: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
 
   job_3:
     runs-on: [self-hosted, linux]
@@ -29,4 +32,4 @@ jobs:
     runs-on: [self-hosted, linux]
     needs: [job_2, job_3]
     steps:
-      - run: "echo Jobs: ${{ github.job }}"
+      - run: "echo : ${{ github.job }}"
