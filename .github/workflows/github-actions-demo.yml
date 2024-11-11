@@ -7,25 +7,14 @@ jobs:
     steps:
       - run: "echo Jobs: ${{ github.job }}"
       - uses: actions/checkout@v3
-      - run: echo "SELECTED_COLOR=green" >> "GITHUB_OUTPUT"
-        id: color-generator
-      - name: Get color
-        run: echo "${{ steps.color-generator.outputs.SELECTED_COLOR }}"
+      - name: Set the value
+        id: step_one
+        run: echo "action_state=yellow" >> "GITHUB_ENV"
+      - run: |
+          echo "${{ env.action_state }}"
 
   job_2:
     runs-on: [self-hosted, linux]
     needs: job_1
     steps:
       - run: "echo Color: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
-
-  job_3:
-    runs-on: [self-hosted, linux]
-    needs: job_1
-    steps:
-      - run: "echo Jobs: ${{ github.job }}"
-
-  job_4:
-    runs-on: [self-hosted, linux]
-    needs: [job_2, job_3]
-    steps:
-      - run: "echo : ${{ github.job }}"
