@@ -8,7 +8,7 @@ jobs:
       - run: "echo Jobs: ${{ github.job }}"
       - uses: actions/checkout@v3
       - run: |
-          ls /tmp/tototata
+          ls /tmp/
           $? || STATUS=failed >> $GITHUB_OUTPUT"
         id: status
         continue-on-error: true
