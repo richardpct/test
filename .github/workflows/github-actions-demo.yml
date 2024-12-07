@@ -1,21 +1,11 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
-jobs:
-  job_1:
-    runs-on: [self-hosted, linux]
-    steps:
-      - run: "echo Jobs: ${{ github.job }}"
-      - uses: actions/checkout@v3
-      - name: Set the value
-        id: step_one
-        run: echo "action_state=yellow" >> "$GITHUB_ENV"
-      - run: |
-          echo "${{ env.action_state }}"
-          echo "${{ vars.COLOR }}"
+name: Actions Runner Controller Demo
+on:
+  workflow_dispatch:
 
-  job_2:
-    runs-on: [self-hosted, linux]
-    needs: job_1
+jobs:
+  Explore-GitHub-Actions:
+    # You need to use the INSTALLATION_NAME from the previous step
+    runs-on: arc-runner-set
     steps:
-      - run: "echo Color: ${{ steps.color-generator.outputs.SELECTED_COLOR }}"
+    - run: echo "🎉 This job uses runner scale set runners!"
+
