@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  Explore-GitHub-Actions:
-    # You need to use the INSTALLATION_NAME from the previous step
-    runs-on: arc-runner-set
-    steps:
-    - run: echo "🎉 This job uses runner scale set runners!"
-
+    container-job:
+        runs-on: arc-runner-set
+        container: node:17.6.0
+        steps:
+            - run: node --version
+            - run: npm --version
