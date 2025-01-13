@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+NAMESPACE="arc-systems"
+
+microk8s helm install arc \
+  --namespace "${NAMESPACE}" \
+  --create-namespace \
+  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller
+
+microk8s kubectl create ns arc-runners
+
+microk8s kubectl create secret generic pre-defined-secret \
+  --namespace=arc-runners \
+  --from-literal=github_token='xxxxxxxxxxxxxxxxxxxxxxx'
+
+INSTALLATION_NAME="runner-test-04"
+NAMESPACE="arc-runners"
+
+microk8s helm install "${INSTALLATION_NAME}" \
+  --namespace "${NAMESPACE}" \
+  --create-namespace \
+  --set githubConfigUrl="https://github.com/rpct-orga" \
+  --set githubConfigSecret="pre-defined-secret" \
+  -f values.yaml \
+  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
