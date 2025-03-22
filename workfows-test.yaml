@@ -1,0 +1,37 @@
+name: Actions Runner Controller Demo
+on:
+  workflow_dispatch:
+
+jobs:
+  container-build:
+    runs-on: arc-runner-set
+    container: golang
+    steps:
+    - uses: actions/checkout@v4
+    - name: build
+      run: |
+        go mod init example/hello
+        go mod tidy
+        go build -buildvcs=false -o hello .
+        ls -la
+    - name: Save binary
+      id: cache-primes-save
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          hello
+        key: ${{ github.run_id }}-${{ github.run_attempt}}
+
+  container-exec:
+    needs: container-build
+    runs-on: self-hosted
+    container: golang
+    steps:
+    - uses: actions/cache/restore@v4
+      id: cache
+      with:
+        path: hello
+        key: ${{ github.run_id }}-${{ github.run_attempt}}
+    - name: exec
+      run: |
+        ./hello
