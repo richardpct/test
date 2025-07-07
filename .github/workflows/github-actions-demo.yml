@@ -3,9 +3,66 @@ on:
   workflow_dispatch:
 
 jobs:
-    container-job:
-        runs-on: arc-runner-set
-        container: node:17.6.0
-        steps:
-            - run: node --version
-            - run: npm --version
+  container-build:
+    runs-on: arc-runner-set
+    container: golang
+    steps:
+    - uses: actions/checkout@v4
+    - name: build
+      run: |
+        go mod init example/hello
+        go mod tidy
+        go build -buildvcs=false -o hello .
+        ls -la
+    - name: upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: hello
+        path: |
+          hello
+
+  container-exec:
+    needs: container-build
+    runs-on: arc-runner-set
+    container: golang
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: hello
+    - name: exec
+      run: |
+        ./hello
+
+#jobs:
+#  container-build:
+#    runs-on: arc-runner-set
+#    container: golang
+#    steps:
+#    - uses: actions/checkout@v4
+#    - name: build
+#      run: |
+#        go mod init example/hello
+#        go mod tidy
+#        go build -buildvcs=false -o hello .
+#        ls -la
+#    - name: Save binary
+#      id: cache-primes-save
+#      uses: actions/cache/save@v4
+#      with:
+#        path: |
+#          hello
+#        key: ${{ github.run_id }}-${{ github.run_attempt}}
+#
+#  container-exec:
+#    needs: container-build
+#    runs-on: self-hosted
+#    container: golang
+#    steps:
+#    - uses: actions/cache/restore@v4
+#      id: cache
+#      with:
+#        path: hello
+#        key: ${{ github.run_id }}-${{ github.run_attempt}}
+#    - name: exec
+#      run: |
+#        ./hello
