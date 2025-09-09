@@ -3,8 +3,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: rpct-test
+    steps:
+    - name: hello
+      run: |
+        sudo apt-get update
+        sudo apt-get -y upgrade
+        curl https://www.google.fr
+
   container-build:
-    runs-on: arc-runner-set
+    runs-on: rpct-test
     container: golang
     steps:
     - uses: actions/checkout@v4
@@ -23,14 +32,23 @@ jobs:
 
   container-exec:
     needs: container-build
-    runs-on: arc-runner-set
-    container: golang
+    runs-on: rpct-test
+    container: nginx
     steps:
-    - uses: actions/download-artifact@v4
+#    - name: test
+#      run: |
+#        apt-get update
+#        apt-get upgrade -y
+#        apt-get install -y vim
+    - name: Download
+      uses: actions/download-artifact@v5
       with:
         name: hello
     - name: exec
       run: |
+        ls -la
+        chmod 755 hello
+        ls -la
         ./hello
 
 #jobs:
