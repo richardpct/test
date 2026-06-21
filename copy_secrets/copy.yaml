@@ -1,0 +1,85 @@
+# Replace these throughout: SECRET_NAME, SOURCE_NS, DEST_NS
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-copier
+  namespace: moon
+---
+# Read access in the SOURCE namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-copier-read
+  namespace: earth
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+    resourceNames: ["pilot"]   # optional: lock to one secret
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secret-copier-read
+  namespace: earth
+subjects:
+  - kind: ServiceAccount
+    name: secret-copier
+    namespace: moon          # SA lives in DEST_NS
+roleRef:
+  kind: Role
+  name: secret-copier-read
+  apiGroup: rbac.authorization.k8s.io
+---
+# Write access in the DEST namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-copier-write
+  namespace: moon
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secret-copier-write
+  namespace: moon
+subjects:
+  - kind: ServiceAccount
+    name: secret-copier
+    namespace: moon
+roleRef:
+  kind: Role
+  name: secret-copier-write
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: copy-secret
+  namespace: moon
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      serviceAccountName: secret-copier
+      restartPolicy: Never
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              kubectl get secret pilot -n earth -o yaml \
+                | sed -e '/^\s*namespace:/d' \
+                      -e '/^\s*resourceVersion:/d' \
+                      -e '/^\s*uid:/d' \
+                      -e '/^\s*creationTimestamp:/d' \
+                | kubectl apply -n moon -f -
+              echo "Secret pilot copied from earth to moon"
