@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sync-astronaut-secrets
+  namespace: default
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      containers:
+      - name: sync-worker
+        image: python:3.11-alpine
+        command: ["python", "-u", "/scripts/sync.py"]
+        env:
+        - name: RANCHER_URL
+          value: "https://rancher.unixworld.io"
+        - name: TARGET_CLUSTER
+          value: "c-m-pqj5fs72"
+        volumeMounts:
+        - name: script-volume
+          mountPath: /scripts
+        - name: secret-volume
+          mountPath: /etc/secrets
+          readOnly: true
+      restartPolicy: Never
+      volumes:
+      - name: script-volume
+        configMap:
+          name: sync-secrets-script
+          defaultMode: 0755
+      - name: secret-volume
+        secret:
+          secretName: rancher-api-credentials

@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sync-secrets-script
+  namespace: default
+data:
+  sync.py: |
+    import os
+    import json
+    import ssl
+    import urllib.request
+    import urllib.error
+
+    # Configuration depuis l'environnement
+    rancher_url = os.environ.get('RANCHER_URL')
+    target_cluster = os.environ.get('TARGET_CLUSTER')
+
+    # Lecture sécurisée du token depuis le fichier monté en RAM
+    token_path = '/etc/secrets/RANCHER_TOKEN'
+    try:
+        with open(token_path, 'r') as file:
+            token = file.read().strip()
+    except FileNotFoundError:
+        print(f"[ERREUR CRITIQUE] Fichier token introuvable : {token_path}")
+        exit(1)
+
+    # Définition des clusters (Format: ID-CLUSTER:NOM-CLUSTER)
+    clusters = [
+        {"id": "c-m-pqj5fs72", "name": "andromeda"},
+        {"id": "c-m-rmxcntlp", "name": "phoenix"}
+    ]
+
+    # Désactivation de la vérification TLS
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+
+    def make_request(url, method='GET', data=None):
+        req = urllib.request.Request(url, headers=headers, method=method)
+        if data:
+            req.data = json.dumps(data).encode('utf-8')
+        try:
+            with urllib.request.urlopen(req, context=ctx) as response:
+                return {"status": response.status, "data": json.loads(response.read().decode())}
+        except urllib.error.HTTPError as e:
+            return {"error": True, "status": e.code, "body": e.read().decode()}
+
+    print("Démarrage de la synchronisation via Python API...")
+
+    for cluster in clusters:
+        cid = cluster["id"]
+        cname = cluster["name"]
+        print(f"\n-> Traitement du cluster source: {cname} ({cid})")
+
+        # 1. Récupération du secret source
+        get_url = f"{rancher_url}/k8s/clusters/{cid}/api/v1/namespaces/earth/secrets/astronaut"
+        res = make_request(get_url)
+
+        if res.get('error'):
+            print(f"   [ERREUR] Impossible de lire le secret sur {cid} (HTTP {res['status']})")
+            continue
+
+        source_data = res["data"]
+
+        # 2. Préparation du nouveau secret
+        new_secret = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": source_data.get("type", "Opaque"),
+            "metadata": {
+                "name": cname,
+                "namespace": "moon"
+            },
+            "data": source_data.get("data", {})
+        }
+
+        # 3. Déploiement sur le cluster cible
+        target_base_url = f"{rancher_url}/k8s/clusters/{target_cluster}/api/v1/namespaces/moon/secrets"
+        check_url = f"{target_base_url}/{cname}"
+
+        check_res = make_request(check_url)
+
+        if check_res.get('error') and check_res.get('status') == 404:
+            create_res = make_request(target_base_url, method='POST', data=new_secret)
+            if create_res.get('error'):
+                print(f"   [ERREUR] Échec de la création: {create_res['body']}")
+            else:
+                print(f"   [SUCCÈS] Secret {cname} créé dans le namespace moon !")
+        elif not check_res.get('error'):
+            new_secret["metadata"]["resourceVersion"] = check_res["data"]["metadata"]["resourceVersion"]
+            update_res = make_request(check_url, method='PUT', data=new_secret)
+            if update_res.get('error'):
+                print(f"   [ERREUR] Échec de la mise à jour: {update_res['body']}")
+            else:
+                print(f"   [SUCCÈS] Secret {cname} mis à jour dans le namespace moon !")
+        else:
+            print(f"   [ERREUR] Impossible de joindre le cluster cible (HTTP {check_res['status']})")
+
+    print("\nSynchronisation terminée.")

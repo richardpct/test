@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: earth
+---
+apiVersion: v1
+data:
+  pilot: YXJtc3Ryb25n
+kind: Secret
+metadata:
+  name: astronaut
+  namespace: earth
