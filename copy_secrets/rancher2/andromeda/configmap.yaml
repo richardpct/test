@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sync-secrets-script
+  namespace: default
+data:
+  sync.py: |
+    import os
+    import json
+    import ssl
+    import urllib.request
+    import urllib.error
+
+    # Configuration from environment variables
+    rancher_url = os.environ.get('RANCHER_URL')
+    target_cluster = os.environ.get('TARGET_CLUSTER')
+
+    # Securely read the token from the mounted file
+    token_path = '/etc/secrets/RANCHER_TOKEN'
+    try:
+        with open(token_path, 'r') as file:
+            token = file.read().strip()
+    except FileNotFoundError:
+        print(f"[CRITICAL ERROR] Token file not found: {token_path}")
+        exit(1)
+
+    # Disable TLS verification
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+
+    def make_request(url, method='GET', data=None):
+        req = urllib.request.Request(url, headers=headers, method=method)
+        if data:
+            req.data = json.dumps(data).encode('utf-8')
+        try:
+            with urllib.request.urlopen(req, context=ctx) as response:
+                return {"status": response.status, "data": json.loads(response.read().decode())}
+        except urllib.error.HTTPError as e:
+            return {"error": True, "status": e.code, "body": e.read().decode()}
+
+    print("Starting synchronization via Python API...")
+
+    print("\nSearching for available downstream clusters...")
+    clusters_url = f"{rancher_url}/v3/clusters"
+    clusters_res = make_request(clusters_url)
+
+    if clusters_res.get('error'):
+        print(f"[CRITICAL ERROR] Unable to list clusters (HTTP {clusters_res['status']})")
+        print(clusters_res.get('body'))
+        exit(1)
+
+    clusters = []
+    for c in clusters_res["data"]["data"]:
+        c_name = c.get("name")
+        c_id = c.get("id")
+        # Ignore the "local" cluster to only target downstream clusters
+        if c_name != "local":
+            clusters.append({"id": c_id, "name": c_name})
+
+    print(f"Clusters found: {', '.join([c['name'] for c in clusters])}")
+
+    for cluster in clusters:
+        cid = cluster["id"]
+        cname = cluster["name"]
+        print(f"\n-> Processing source cluster: {cname} ({cid})")
+
+        # 1. Fetch the source secret
+        get_url = f"{rancher_url}/k8s/clusters/{cid}/api/v1/namespaces/earth/secrets/astronaut"
+        res = make_request(get_url)
+
+        if res.get('error'):
+            print(f"   [ERROR] Unable to read the secret on {cid} (HTTP {res['status']})")
+            continue
+
+        source_data = res["data"]
+
+        # If the secret is a ServiceAccount token, force the type to Opaque
+        # for the destination to avoid triggering strict K8s validations.
+        source_type = source_data.get("type", "Opaque")
+        target_type = "Opaque" if source_type == "kubernetes.io/service-account-token" else source_type
+
+        target_secret_name = f"{cname}-test"
+
+        # 2. Prepare the new secret
+        # The 'data' field always contains the base64-encoded 'token' key
+        new_secret = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "type": target_type,
+            "metadata": {
+                "name": target_secret_name,
+                "namespace": "moon"
+            },
+            "data": source_data.get("data", {})
+        }
+
+        # 3. Deploy to the target cluster
+        target_base_url = f"{rancher_url}/k8s/clusters/{target_cluster}/api/v1/namespaces/moon/secrets"
+        check_url = f"{target_base_url}/{target_secret_name}"
+
+        check_res = make_request(check_url)
+
+        if check_res.get('error') and check_res.get('status') == 404:
+            create_res = make_request(target_base_url, method='POST', data=new_secret)
+            if create_res.get('error'):
+                print(f"   [ERROR] Creation failed: {create_res['body']}")
+            else:
+                print(f"   [SUCCESS] Secret {cname} (Token) created in the moon namespace!")
+        elif not check_res.get('error'):
+            new_secret["metadata"]["resourceVersion"] = check_res["data"]["metadata"]["resourceVersion"]
+            update_res = make_request(check_url, method='PUT', data=new_secret)
+            if update_res.get('error'):
+                print(f"   [ERROR] Update failed: {update_res['body']}")
+            else:
+                print(f"   [SUCCESS] Secret {cname} (Token) updated in the moon namespace!")
+        else:
+            print(f"   [ERROR] Unable to reach target cluster (HTTP {check_res['status']})")
+
+    print("\nSynchronization complete.")

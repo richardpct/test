@@ -1,0 +1,34 @@
+#---
+#apiVersion: management.cattle.io/v3
+#kind: User
+#metadata:
+#  name: m-voyager
+#username: voyager
+#enabled: true
+#principalIds:
+#- local://m-voyager
+#password: "voyagervoyager"
+---
+# Attribution du rôle "Standard User"
+apiVersion: management.cattle.io/v3
+kind: GlobalRoleBinding
+metadata:
+  name: grb-voyager-standard-user
+globalRoleName: user-base
+userName: m-t6xtc
+---
+apiVersion: management.cattle.io/v3
+kind: GlobalRole
+metadata:
+  name: gr-all-clusters-member
+displayName: "Access to all clusters"
+description: "Map the cluster-member to all clusters"
+inheritedClusterRoles:
+  - cluster-member
+---
+apiVersion: management.cattle.io/v3
+kind: GlobalRoleBinding
+metadata:
+  name: grb-all-clusters
+globalRoleName: gr-all-clusters-member
+userName: m-t6xtc

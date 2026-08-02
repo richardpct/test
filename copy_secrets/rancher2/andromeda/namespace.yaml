@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: earth
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: moon
+---
+# 2. Création du Secret lié au ServiceAccount
+apiVersion: v1
+kind: Secret
+metadata:
+  name: astronaut
+  namespace: earth
+  annotations:
+    # C'est cette ligne qui fait le lien avec le SA !
+    kubernetes.io/service-account.name: default
+# C'est ce type précis qui indique à K8s de générer le token
+type: kubernetes.io/service-account-token

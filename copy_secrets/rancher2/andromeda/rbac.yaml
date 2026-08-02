@@ -1,0 +1,49 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: earth
+  name: astronaut-secret-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["astronaut"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: earth
+  name: bind-astronaut-reader
+subjects:
+- kind: User
+  name: "m-t6xtc"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: astronaut-secret-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: moon
+  name: astronaut-secret-writer
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create", "get", "list", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: moon
+  name: bind-astronaut-writer
+subjects:
+- kind: User
+  name: "m-t6xtc"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: astronaut-secret-writer
+  apiGroup: rbac.authorization.k8s.io
